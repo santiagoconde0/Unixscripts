@@ -1,0 +1,119 @@
+#!/bin/bash
+
+# read the file to search
+function readFile() {
+  read -p "Insert the name of the file: " fileName
+  validate
+}
+
+# validate if the file exist or the name is empty
+function validate() {
+  if [[ -z $fileName ]]; then
+    echo ""
+    echo "Error: "
+    echo "The value is empty, please enter a valid file."
+    echo ""
+    readFile
+  else
+    searchFile
+  fi
+}
+
+# search the file
+function searchFile()  {
+result=$(ls -la $fileName)
+
+# file type
+  if [[ ${result:$1:1} != "-" ]]; then
+    result=""
+    echo "Is not a file, please enter a file. "
+    readFile
+else
+
+count=0
+for (( i = 0; i <${#result}; i++ )); do
+  string="$string${result:$i:1}"
+  if [[ ${result:$i:1} = " " ]]; then
+    count=`expr $count + 1`
+    string=""
+  fi
+  if [[ count -eq 2 ]]; then
+    user=$string
+  fi
+  if [[ count -eq 3 ]]; then
+    group=$string
+  fi
+done
+
+# echo "User: $user"
+# echo "group: $group"
+
+# permissions for the user
+for (( i = 1; i <4; i++ )); do
+  if [[ ${result:$i:1} = "r" ]]; then
+    value="read"
+elif [[ ${result:$i:1} = "w" ]]; then
+    value="write"
+elif [[ ${result:$i:1} = "x" ]]; then
+    value="execute"
+else value=""
+  fi
+  pu="$pu $value"
+done
+echo "$user :$pu"
+pu=""
+
+# users in the Group
+usersGroup=$(awk -F':' '/'$group'/{if($1 == "'$group'") {print $4}}' /etc/group)
+
+# permissions for the Group
+for (( i = 4; i <7; i++ )); do
+  if [[ ${result:$i:1} = "r" ]]; then
+    value="read"
+elif [[ ${result:$i:1} = "w" ]]; then
+    value="write"
+elif [[ ${result:$i:1} = "x" ]]; then
+    value="execute"
+else value=""
+  fi
+  pg="$pg $value"
+done
+
+query=""
+string=""
+for (( i = 0; i <${#usersGroup}; i++ )); do
+  c="${usersGroup:$i:1}"
+  if [[ $c = "," ]]; then
+    query=$query"\$"'1!="'$string'"'"&&"
+    echo "$string : $pg"
+    string=""
+    c=""
+  fi
+  string="$string$c"
+done
+
+query=$query"\$"'1!="'$string'"'"&&""\$"'1!="'$user'"'
+echo "$string : $pg"
+
+# permissions for the Other
+for (( i = 7; i <10; i++ )); do
+  if [[ ${result:$i:1} = "r" ]]; then
+    value="read"
+elif [[ ${result:$i:1} = "w" ]]; then
+    value="write"
+elif [[ ${result:$i:1} = "x" ]]; then
+    value="execute"
+else value=""
+  fi
+  po="$po $value"
+done
+
+# other users
+otherUsers=$(awk -F':' '{if ('$query') {print $1 ,":'"$po"'"}}' /etc/passwd)
+
+echo "$otherUsers"
+
+fi
+}
+
+readFile
