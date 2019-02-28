@@ -116,4 +116,10 @@ echo "$otherUsers"
 fi
 }
 
-readFile
+# Validate if have arguments
+if [[ -z $1 ]]; then
+  readFile
+else
+  fileName=$1
+  validate
+fi
