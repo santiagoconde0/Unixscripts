@@ -1,0 +1,9 @@
+#!/bin/sh
+
+# get the data
+users=`users`
+date=`date`
+
+# print the results in a file
+echo "$date:" >>log.txt
+echo "$users"'\n'>>log.txt
